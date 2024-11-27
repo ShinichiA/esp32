@@ -2,6 +2,7 @@
 #include "api_components.h"
 #include "arch/sys_arch.h"
 #include "gpio_components.h"
+#include "mqtt_components.h"
 #include "wifi_components.h"
 #include <string.h>
 
@@ -30,8 +31,8 @@ void device_control_task(void *pvParameter) {
       if (xSemaphoreTake(xMutex, portMAX_DELAY) == pdTRUE) {
         printf("Received: %d\n", received_value);
         sprintf(received_string, "%d", received_value);
-        //mqtt_publish(mqtt_client, TOPIC, received_string,
-                     //strlen(received_string), 2, 0);
+        mqtt_publish(mqtt_client, TOPIC, received_string,
+                     strlen(received_string), 2, 0);
         memset(received_string, 0, sizeof(received_string));
       }
     }
@@ -64,13 +65,13 @@ void app_main() {
   // connect to the wifi network
   wifi_init_sta();
   printf("Connected to wifi network\n");
-  //get_wifi_mac_address(mac_addr);
+  get_wifi_mac_address(mac_addr);
   vTaskDelay(pdMS_TO_TICKS(10000)); // 10 giây trong chế độ STA
   wifi_stop();
   vTaskDelay(pdMS_TO_TICKS(10000)); // 10 giây trong chế độ STA
   wifi_init_ap();
   start_webserver();
-  vTaskDelay(pdMS_TO_TICKS(50000)); // 10 giây trong chế độ STA
+  vTaskDelay(pdMS_TO_TICKS(10000)); // 10 giây trong chế độ STA
   wifi_stop();
   vTaskDelay(pdMS_TO_TICKS(10000)); // 10 giây trong chế độ STA
   wifi_init_sta();
@@ -79,12 +80,12 @@ void app_main() {
   xMutex = xSemaphoreCreateMutex();
   init_gpio(button_isr_handler);
   // update status
-  //update_device_status(mac_addr);
+  update_device_status(mac_addr);
   // mqtt config
-  //mqtt_client = mqtt_connect(mqtt_uri);
+  mqtt_client = mqtt_connect(mqtt_uri);
   //  start the check update task
   //  1024 <-> 4096 * 4 = 16384 byte = 16kb
   //  8192 <-> 8192 * 4 = 32768 byte = 32kb
-  //xTaskCreate(&device_control_task, "device_control_task", 4096, NULL, 5, NULL);
-  //xTaskCreate(&OTA_task, "OTA_task", 8192, NULL, 6, NULL);
+  xTaskCreate(&device_control_task, "device_control_task", 4096, NULL, 5, NULL);
+  xTaskCreate(&OTA_task, "OTA_task", 8192, NULL, 6, NULL);
 }
