@@ -10,5 +10,6 @@
 
 cJSON *get_requests_without_chunk(char *url);
 cJSON *post_requests(char *url, cJSON *json_data);
-esp_err_t update_device_status(char *mac);
+esp_err_t update_device_status(char *url, char *mac);
+
 #endif

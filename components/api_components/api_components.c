@@ -9,8 +9,6 @@
 
 static const char *TAG = "api";
 
-char URL_UPDATE_DEVICE_STATUS[] = "http://192.168.0.102:9000/api/device/status";
-
 esp_err_t _https_event_handler(esp_http_client_event_t *evt) {
   switch (evt->event_id) {
   case HTTP_EVENT_ERROR:
@@ -146,11 +144,11 @@ cJSON *post_requests(char *url, cJSON *json_data) {
 }
 //----------------------------------------------------------------------------------------------------------
 
-esp_err_t update_device_status(char *mac) {
+esp_err_t update_device_status(char *url, char *mac) {
   cJSON *json_data = cJSON_CreateObject();
   cJSON_AddStringToObject(json_data, "mac", mac);
   cJSON_AddBoolToObject(json_data, "status", true);
-  cJSON *json_response = post_requests(URL_UPDATE_DEVICE_STATUS, json_data);
+  cJSON *json_response = post_requests(url, json_data);
   if (!json_response) {
     free(json_response);
     free(json_data);

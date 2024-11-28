@@ -7,23 +7,26 @@
    the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
 */
 #include "esp_http_server.h"
+#include "nvs_components.h"
 #include <stdint.h>
 
-#define EXAMPLE_ESP_WIFI_SSID      "loadl"
-#define EXAMPLE_ESP_WIFI_PASS      ""
-#define EXAMPLE_ESP_WIFI_CHANNEL   1
-#define EXAMPLE_MAX_STA_CONN       4
+#define AP_ESP_WIFI_SSID      "ESP32_AP"
+#define AP_ESP_WIFI_PASS      ""
+#define AP_ESP_WIFI_CHANNEL   1
+#define AP_MAX_STA_CONN       4
 
-#define WIFI_SSID "Phong_301"
-#define WIFI_PASS "1234abcd"
-#define ESP_MAXIMUM_RETRY 3
+#define MAX_SSID_LENGTH 32
+#define MAX_PASSWORD_LENGTH 64
 
 void wifi_init(void);
-void wifi_init_sta();
+void wifi_init_sta(char *ssid, char* password);
 void get_wifi_mac_address(char *mac_addr);
 
 void wifi_stop();
 void wifi_init_ap(void);
 httpd_handle_t start_webserver(void);
 void stop_webserver(void);
+
+int get_current_wifi_mode();
+
 #endif

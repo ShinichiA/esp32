@@ -11,7 +11,7 @@
 #include "nvs_flash.h"
 
 #define MAX_LENGTH_URL 200
-#define UPDATE_JSON_URL "http://192.168.0.102:9000/api/device/firmware"
+#define UPDATE_JSON_URL "http://192.168.0.101:9000/api/firmware"
 void update_ota(char *mac_addr, char *firmware_version);
 
 #endif

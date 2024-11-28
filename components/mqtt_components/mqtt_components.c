@@ -37,7 +37,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
   }
 }
 
-esp_mqtt_client_handle_t mqtt_connect(char *uri) {
+esp_mqtt_client_handle_t mqtt_connect(const char *uri) {
   esp_mqtt_client_config_t mqtt_cfg = {
       .broker.address.uri = uri
       //.broker.address.hostname = "192.168.0.102",

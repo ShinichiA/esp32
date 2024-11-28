@@ -1,9 +1,11 @@
 #include <string.h>
+#include "arch/sys_arch.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_mac.h"
 #include "esp_wifi.h"
+#include "esp_wifi_types.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "nvs_flash.h"
@@ -15,6 +17,7 @@
 #include "wifi_components.h"
 
 httpd_handle_t server = NULL;
+wifi_mode_t mode;
 
 static bool is_reconnect = true;
 const char* wifi_config_html = 
@@ -178,7 +181,7 @@ void wifi_stop(){
 	ESP_ERROR_CHECK(esp_wifi_stop()); // Dừng WiFi trước khi chuyển chế độ
 }
 
-void wifi_init_sta(void) {
+void wifi_init_sta(char *ssid, char *password) {
     // Tạo netif STA nếu chưa có
     static esp_netif_t *sta_netif = NULL;
     if (!sta_netif) {
@@ -187,17 +190,19 @@ void wifi_init_sta(void) {
 	
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASS,
+            .ssid = "",
+            .password = "",
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
         },
     };
+    strncpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid) - 1);
+    strncpy((char *)wifi_config.sta.password, password, sizeof(wifi_config.sta.password) - 1);
+
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "Switched to STA mode. SSID:%s", WIFI_SSID);
+    ESP_LOGI(TAG, "Switched to STA mode. SSID:%s", ssid);
 }
 
 void wifi_init_ap(void) {
@@ -209,11 +214,11 @@ void wifi_init_ap(void) {
 
     wifi_config_t wifi_config = {
         .ap = {
-            .ssid = EXAMPLE_ESP_WIFI_SSID,
-            .ssid_len = strlen(EXAMPLE_ESP_WIFI_SSID),
-            .channel = EXAMPLE_ESP_WIFI_CHANNEL,
-            .password = EXAMPLE_ESP_WIFI_PASS,
-            .max_connection = EXAMPLE_MAX_STA_CONN,
+            .ssid = AP_ESP_WIFI_SSID,
+            .ssid_len = strlen(AP_ESP_WIFI_SSID),
+            .channel = AP_ESP_WIFI_CHANNEL,
+            .password = AP_ESP_WIFI_PASS,
+            .max_connection = AP_MAX_STA_CONN,
 #ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
             .authmode = WIFI_AUTH_WPA3_PSK,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
@@ -226,7 +231,7 @@ void wifi_init_ap(void) {
         },
     };
 
-    if (strlen(EXAMPLE_ESP_WIFI_PASS) == 0) {
+    if (strlen(AP_ESP_WIFI_PASS) == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
@@ -234,7 +239,7 @@ void wifi_init_ap(void) {
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "Switched to AP mode. SSID:%s channel:%d", EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_CHANNEL);
+    ESP_LOGI(TAG, "Switched to AP mode. SSID:%s channel:%d", AP_ESP_WIFI_SSID, AP_ESP_WIFI_CHANNEL);
 }
 
 // Hàm xử lý yêu cầu HTTP và trả về trang cấu hình
@@ -269,18 +274,27 @@ esp_err_t wifi_config_post_handler(httpd_req_t *req) {
     }
 
     ESP_LOGI(TAG, "Received SSID: %s, Password: %s", ssid, password);
-
+    esp_wifi_get_mode(&mode);
+	if (mode == WIFI_MODE_STA){
+		// Trả về kết quả
+	    const char* resp_str = "<html><body><h1>Please Go To Config Mode</h1></body></html>";
+	    httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
+	    return ESP_OK;
+	}
     // Lưu cấu hình Wi-Fi vào bộ nhớ NVS (hoặc áp dụng cấu hình này vào Wi-Fi STA mode)
-    // Chúng ta chỉ in ra ở đây, bạn có thể triển khai mã để lưu vào NVS
-
+	write_wifi_login_info(ssid, password);
+	
     // Trả về kết quả
     const char* resp_str = "<html><body><h1>Configuration Saved!</h1></body></html>";
     httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
 
     // Có thể chuyển sang chế độ STA và kết nối Wi-Fi ở đây
+    // stop_webserver();
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
     wifi_stop();
     vTaskDelay(pdMS_TO_TICKS(10000));
-    wifi_init_sta();
+    wifi_init_sta(ssid, password);
 
     return ESP_OK;
 }
@@ -320,4 +334,10 @@ void stop_webserver(void) {
         server = NULL;
         ESP_LOGI("WEB", "Webserver stopped.");
     }
+}
+
+int get_current_wifi_mode(){
+	esp_wifi_get_mode(&mode);
+	return mode;
+;
 }
