@@ -301,6 +301,10 @@ esp_err_t wifi_config_post_handler(httpd_req_t *req) {
 
 // Hàm khởi tạo web server
 httpd_handle_t start_webserver(void) {
+	if (server != NULL){
+		return server;
+	}
+
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 	config.max_resp_headers = 4096; // Increase header length
 	config.max_uri_handlers = 1024;
